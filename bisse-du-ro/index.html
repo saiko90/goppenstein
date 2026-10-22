@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bisse du Ro – carnet & rallye (prototype)</title>
+<meta name="description" content="Prototype de carnet de terrain touristique : Bisse du Ro, itinéraire, vues drone et rallye famille.">
+<meta name="theme-color" content="#0f3b46">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --bg:#eef3f1;--surface:#ffffff;--ink:#0f2a30;--muted:#53666b;--deep:#0f3b46;--water:#1f8296;--larch:#b9862a;--cliff:#8a7f72;--line:#cfdcd9;--ok:#2f7d4f;--danger:#a3261b;
+  --head:"Bricolage Grotesque","Arial Narrow",system-ui,sans-serif;--body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1a1d;--surface:#14262a;--ink:#e6efee;--muted:#9fb3b5;--deep:#0a2a32;--water:#4cb3c7;--larch:#e0b154;--cliff:#b3a99c;--line:#27403f;--ok:#62b886;--danger:#ff7b6b;color-scheme:dark}}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 58px);scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 var(--body)}
+a{color:var(--water)}
+:focus-visible{outline:3px solid var(--larch);outline-offset:2px}
+h1,h2,h3{font-family:var(--head);font-weight:800;line-height:1.02;margin:0;letter-spacing:-.01em}
+h2{font-size:clamp(1.8rem,5vw,2.5rem);margin-bottom:.5rem}
+h3{font-size:1.3rem;font-weight:600;margin:.2rem 0 .4rem}
+p{margin:.4rem 0 .9rem;max-width:66ch}
+.wrap{max-width:1000px;margin:0 auto;padding:0 18px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:1001;background:var(--deep)}
+nav.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:1000;background:var(--deep)}
+nav.top .wrap{display:flex;gap:2px;overflow-x:auto;align-items:center}
+nav.top a{color:#e6efee;text-decoration:none;font:600 1rem/1 var(--head);padding:16px 10px;white-space:nowrap;opacity:.85}
+nav.top a:hover{opacity:1}
+nav.top .proto{margin-left:auto;font:700 .75rem/1 var(--body);color:var(--deep);background:var(--larch);padding:5px 8px;border-radius:3px;white-space:nowrap}
+/* Hero : le profil de falaise avec le filet d’eau */
+header.hero{background:var(--deep);color:#e6efee;padding:30px 0 0;overflow:hidden}
+.hero h1{font-size:clamp(3.2rem,14vw,7rem);line-height:.88}
+.hero .sub{font-size:1.1rem;color:#b9d3d6;max-width:46ch;margin-top:12px}
+.facts{display:flex;flex-wrap:wrap;gap:6px 22px;margin:16px 0 0;font-size:.95rem;color:#b9d3d6}
+.facts b{color:#fff}
+.cliff{display:block;width:100%;height:auto;margin-top:18px}
+.cliff .rock{fill:#0a2a32}
+.cliff .rock2{fill:#123f4b}
+.cliff .channel{fill:none;stroke:#4cb3c7;stroke-width:5;stroke-linecap:round;stroke-dasharray:14 10;animation:flow 2.4s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-48}}
+.cliff .walker{fill:var(--larch)}
+@media (prefers-reduced-motion:reduce){.cliff .channel{animation:none}}
+section{padding:46px 0 8px}
+.btn{appearance:none;border:1px solid var(--deep);background:var(--deep);color:#fff;font:700 1rem/1 var(--head);padding:12px 15px;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--ink)}
+.btn.gold{background:var(--larch);border-color:var(--larch);color:#1c1405}
+.btn:disabled{opacity:.5;cursor:default}
+.note{font-size:.9rem;color:var(--muted)}
+/* Drone */
+.drone{position:relative;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,var(--deep),#1c5a68);color:#e6efee;aspect-ratio:16/9;display:grid;place-items:center;text-align:center;padding:16px}
+.drone .scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 6px)}
+.drone .reticle{position:absolute;width:42%;aspect-ratio:1;border:2px dashed rgba(255,255,255,.35);border-radius:50%;animation:spin 18s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.drone .reticle{animation:none}}
+.drone b{position:relative;font:800 1.3rem var(--head)}
+.drone span{position:relative;display:block;font-size:.9rem;opacity:.85;margin-top:4px}
+.drone.small{aspect-ratio:16/8;border-radius:8px}
+.drone.small b{font-size:1.05rem}
+/* Rallye : tableau de bord */
+.board{position:sticky;top:calc(env(safe-area-inset-top,0px) + 56px);z-index:50;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:14px;box-shadow:0 6px 18px rgba(15,42,48,.08)}
+.drops{display:flex;gap:6px}
+.drop{width:26px;height:32px}
+.drop path{fill:var(--line);transition:fill .4s}
+.drop.on path{fill:var(--water)}
+.drop.pop{animation:pop .6s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes pop{40%{transform:scale(1.35)}}
+@media (prefers-reduced-motion:reduce){.drop.pop{animation:none}}
+.board .lbl{font:800 1.15rem var(--head)}
+.board .lbl small{display:block;font:500 .85rem var(--body);color:var(--muted)}
+.board .pts{margin-left:auto;font:800 1.5rem var(--head);color:var(--larch);white-space:nowrap}
+/* Étapes */
+ol.route{list-style:none;margin:20px 0 0;padding:0;position:relative}
+ol.route::before{content:"";position:absolute;left:21px;top:0;bottom:0;width:4px;background:repeating-linear-gradient(var(--water) 0 10px,transparent 10px 18px);opacity:.5}
+ol.route>li{position:relative;padding:8px 0 30px 62px}
+.km{position:absolute;left:0;top:6px;width:46px;height:46px;border-radius:50%;background:var(--surface);border:3px solid var(--deep);display:grid;place-items:center;font:800 1.05rem var(--head)}
+li.done .km{background:var(--water);border-color:var(--water);color:#fff}
+li.expo .km{border-color:var(--danger)}
+.meta{font:700 .95rem var(--head);color:var(--water)}
+.warn{background:color-mix(in srgb,var(--danger) 10%,var(--surface));border:1px solid var(--danger);border-radius:8px;padding:10px 12px;font-size:.95rem;margin:.4rem 0 .9rem}
+.warn b{color:var(--danger)}
+.post{background:var(--surface);border:2px solid var(--larch);border-radius:10px;padding:14px;margin-top:10px}
+.post .tag{font:800 .95rem var(--head);color:var(--larch)}
+.post h4{font:800 1.15rem var(--head);margin:.2rem 0 .5rem}
+.choices{display:grid;gap:8px;margin:.4rem 0}
+.choices button{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:11px 12px;font:500 1rem var(--body);cursor:pointer}
+.choices button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,var(--surface))}
+.choices button.wrong{border-color:var(--danger);opacity:.7}
+.feedback{font-size:.95rem;margin-top:8px;min-height:1.2em}
+.feedback b{color:var(--ok)}
+.reveal{display:none;margin-top:10px}
+.reveal.show{display:block;animation:rise .6s cubic-bezier(.2,.8,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+.photoprev{max-width:100%;border-radius:8px;margin-top:8px;display:block}
+.todo{display:inline-block;font:700 .75rem var(--body);background:var(--larch);color:#1c1405;padding:2px 6px;border-radius:3px;margin-left:6px;vertical-align:middle}
+/* Finale */
+.finale{display:none;border-radius:12px;background:var(--deep);color:#e6efee;padding:22px;margin:10px 0 0;text-align:center}
+.finale.show{display:block;animation:rise .7s cubic-bezier(.2,.8,.2,1)}
+.finale .code{font:800 clamp(2rem,9vw,3rem) var(--head);letter-spacing:.06em;color:var(--larch);margin:8px 0}
+/* Carte */
+#map{height:min(64vh,520px);border-radius:10px;border:1px solid var(--line)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.legend{font-size:.9rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin:0 4px -1px 0;vertical-align:baseline}
+/* Pour l’office */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h3{font-size:1.15rem}
+footer{padding:40px 0 70px;color:var(--muted);font-size:.9rem}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:2000}
+</style>
+</head>
+<body>
+<nav class="top" aria-label="Sections"><div class="wrap">
+  <a href="#rallye">Rallye</a><a href="#carte">Carte</a><a href="#drone">Vues drone</a><a href="#office">Pour l’office</a><span class="proto">Prototype</span>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <h1>Bisse du Ro</h1>
+  <p class="sub">Un canal médiéval accroché à la falaise au-dessus de Crans-Montana. Suis l’eau, résous les énigmes, débloque les vues drone.</p>
+  <div class="facts">
+    <span><b>Départ</b> Plans-Mayens</span>
+    <span><b>Commune</b> Icogne</span>
+    <span><b>Durée</b> ≈ 3 h selon la boucle</span>
+    <span><b>Rallye</b> 5 postes, dès 8 ans</span>
+  </div>
+</div>
+<svg class="cliff" viewBox="0 0 1200 220" preserveAspectRatio="none" aria-hidden="true">
+  <path class="rock2" d="M0,60 L120,40 L260,70 L380,30 L520,64 L640,26 L780,58 L900,34 L1040,66 L1200,40 L1200,220 L0,220Z"/>
+  <path class="rock" d="M0,120 L90,112 L200,128 L330,104 L470,124 L600,100 L740,122 L880,106 L1010,126 L1200,108 L1200,220 L0,220Z"/>
+  <path class="channel" d="M0,116 L90,108 L200,124 L330,100 L470,120 L600,96 L740,118 L880,102 L1010,122 L1200,104"/>
+  <circle class="walker" id="walker" cx="60" cy="104" r="7"/>
+</svg>
+</header>
+
+<main class="wrap">
+
+<section id="rallye">
+  <h2>Le rallye du Ro</h2>
+  <p>Cinq postes le long du bisse. À chaque bonne réponse, une goutte se remplit et une vue drone de l’endroit se débloque. Les cinq gouttes donnent le code final à présenter à la buvette.</p>
+
+  <div class="board" role="status" aria-live="polite">
+    <div class="drops" id="drops"></div>
+    <div class="lbl" id="boardLbl">0 / 5 gouttes<small>Commence au poste 1, à Plans-Mayens</small></div>
+    <div class="pts" id="pts">0 pt</div>
+  </div>
+
+  <ol class="route" id="route"></ol>
+
+  <div class="finale" id="finale">
+    <h3>Le Ro coule à nouveau !</h3>
+    <p style="margin:0 auto">Code à présenter à la buvette partenaire :</p>
+    <div class="code" id="finalCode">RO-0000</div>
+    <p class="note" style="color:#b9d3d6;margin:0 auto">Exemple de récompense : boisson offerte pour les enfants. Partenaire à définir avec l’office.</p>
+    <p style="margin:14px auto 0"><button class="btn ghost" id="reset" style="color:#e6efee;border-color:#e6efee">Rejouer</button></p>
+  </div>
+</section>
+
+<section id="carte">
+  <h2>Carte</h2>
+  <div class="bar">
+    <button class="btn" id="btnGps">Me localiser</button>
+    <button class="btn ghost" id="btnDrone">Afficher les zones drones</button>
+  </div>
+  <div id="map" role="region" aria-label="Carte swisstopo du secteur"></div>
+  <p class="legend"><i style="background:#c0392b"></i>Chemins de randonnée swisstopo · <i style="background:rgba(220,40,40,.35)"></i>Zones de restriction drones (OFAC), à vérifier avant chaque vol</p>
+  <p class="note">Les postes du rallye seront placés au GPS lors du repérage. La carte montre pour l’instant le secteur de Plans-Mayens.</p>
+</section>
+
+<section id="drone">
+  <h2>Vues drone</h2>
+  <p>Emplacements réservés pour les prises de vue aériennes : survol de la passerelle, travelling le long de la falaise, et un modèle 3D par photogrammétrie d’un tronçon du bisse.</p>
+  <div class="drone"><div class="scan"></div><div class="reticle"></div><div><b>Survol du bisse en falaise</b><span>Vidéo 4K à tourner · 30 à 60 secondes</span></div></div>
+  <div class="cards" style="margin-top:12px">
+    <div class="card"><h3>Modèle 3D</h3><p class="note">Photogrammétrie d’un tronçon de falaise, consultable en 3D dans le navigateur, sans application.</p></div>
+    <div class="card"><h3>Avant / après</h3><p class="note">Photo d’archive du bisse en activité, et le même cadrage aujourd’hui depuis le drone.</p></div>
+    <div class="card"><h3>Réseaux sociaux</h3><p class="note">Version verticale de 15 secondes pour Instagram et TikTok de l’office.</p></div>
+  </div>
+</section>
+
+<section id="office">
+  <h2>Pour l’office du tourisme</h2>
+  <p>Ce carnet est un prototype. Le même moteur s’applique à toutes les randonnées d’un secteur.</p>
+  <div class="cards">
+    <div class="card"><h3>Sans application</h3><p class="note">Un lien ou un QR code au départ du sentier. S’ouvre dans le navigateur, fonctionne ensuite hors ligne.</p></div>
+    <div class="card"><h3>Familles</h3><p class="note">Le rallye transforme la balade en jeu. Les enfants vont jusqu’au bout.</p></div>
+    <div class="card"><h3>Commerces partenaires</h3><p class="note">Le code final ramène les visiteurs à une buvette ou un commerce du village.</p></div>
+    <div class="card"><h3>Chiffres</h3><p class="note">Parties lancées, terminées, codes utilisés : des données concrètes pour le rapport annuel.</p></div>
+  </div>
+</section>
+
+</main>
+<footer><div class="wrap">Prototype Swiss Digital Studio. Contenus à valider sur le terrain : les réponses du rallye et les emplacements des postes seront confirmés lors du repérage. Données cartographiques © swisstopo, restrictions drones © OFAC. <a href="/">← Carnet Goppenstein</a></div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Données : chaque étape peut porter un poste de rallye. Jamais de poste sur un passage exposé.
+  var STEPS=[
+    {title:'Plans-Mayens, le départ',meta:'Parking · buvette',text:'Le sentier part vers l’ouest depuis Plans-Mayens. Les premiers mètres longent le canal en forêt, tranquillement.',
+     post:{q:'À quoi servait un bisse comme celui-ci ?',a:['À transporter du bois vers la vallée','À amener l’eau des montagnes jusqu’aux prés et aux cultures','À alimenter un moulin à farine'],ok:1,
+       why:'Les bisses sont des canaux d’irrigation : sur ce versant très sec du Valais, ils amenaient l’eau des vallées latérales jusqu’aux prairies et aux cultures.'}},
+    {title:'Le long de la Lienne',meta:'Forêt · vue sur la vallée',text:'Le bisse remonte la vallée de la Lienne. Les panneaux d’information racontent la construction et l’entretien du canal.',
+     post:{q:'Selon les panneaux et les sources, de quand date le bisse du Ro ?',a:['Du Moyen Âge, il y a plus de 500 ans','Des années 1950','Du temps des Romains'],ok:0,
+       why:'Il est construit au Moyen Âge : les sources parlent du XIVe ou du XVe siècle. On le dit vieux d’environ 500 ans.',todo:true}},
+    {title:'Les passages en falaise',meta:'Section exposée · pas de poste ici',expo:true,text:'Le sentier suit une plateforme au milieu de la paroi, bien sécurisée. C’est le passage spectaculaire du bisse.',
+     warn:'<b>Passage exposé.</b> On ne s’arrête pas, on avance un par un, les enfants côté paroi. Le prochain poste attend de l’autre côté.'},
+    {title:'Après la falaise',meta:'Zone large · pause',text:'Le sentier s’élargit. Bon endroit pour souffler et se raconter le passage.',
+     post:{q:'Pourquoi l’eau ne coule-t-elle plus dans le bisse aujourd’hui ?',a:['Le glacier a disparu','Son entretien en falaise était devenu trop dangereux, l’eau passe désormais par une galerie','Le bisse a été bouché par une avalanche'],ok:1,
+       why:'Au milieu du XXe siècle, l’eau a été détournée dans une galerie : entretenir le canal accroché à la falaise était devenu trop dangereux. Le sentier est conservé pour les promeneurs.'}},
+    {title:'Défi photo',meta:'Point de vue',text:'Choisis un point de vue sûr, à l’écart du sentier exposé.',
+     post:{photo:true,q:'Prends une photo de groupe avec la vallée en arrière-plan.',why:'Bravo ! La photo reste sur ton téléphone. L’office pourrait proposer de la partager avec un hashtag.'}},
+    {title:'Vers l’Er de Chermignon',meta:'Arrivée · retour en bus ou en boucle',text:'Le bisse débouche sur les alpages. Retour possible en bus depuis l’Er de Chermignon, ou en boucle selon l’itinéraire choisi.',
+     post:{q:'Comment appelle-t-on, en Valais, la personne chargée de surveiller et partager l’eau du bisse ?',a:['Le garde-bisse','Le berger','Le meunier'],ok:0,
+       why:'Le garde-bisse surveillait le canal, réparait les fuites et veillait au partage de l’eau entre les familles selon des tours très précis.',todo:true}}
+  ];
+  var KEY='ro-rallye-v1';
+  var st={};try{st=JSON.parse(localStorage.getItem(KEY))||{};}catch(e){}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
+  var posts=STEPS.map(function(s,i){return s.post?i:null;}).filter(function(x){return x!==null;});
+  var TOTAL=posts.length;
+
+  // Gouttes du tableau de bord
+  var drops=document.getElementById('drops');
+  var dropEls=posts.map(function(){var s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 26 32');s.setAttribute('class','drop');s.innerHTML='<path d="M13 1 C13 1 2 14 2 21 a11 11 0 0 0 22 0 C24 14 13 1 13 1Z"/>';drops.appendChild(s);return s;});
+
+  var ol=document.getElementById('route');
+  STEPS.forEach(function(s,i){
+    var li=document.createElement('li');li.id='st-'+i;if(s.expo)li.className='expo';
+    var h='<span class="km">'+(i+1)+'</span><div class="meta">'+s.meta+'</div><h3>'+s.title+'</h3><p>'+s.text+'</p>';
+    if(s.warn)h+='<div class="warn">'+s.warn+'</div>';
+    if(s.post){
+      var n=posts.indexOf(i)+1,p=s.post;
+      h+='<div class="post"><div class="tag">Poste '+n+' / '+TOTAL+(p.todo?'<span class="todo">à valider sur place</span>':'')+'</div><h4>'+p.q+'</h4>';
+      if(p.photo){h+='<label class="btn gold" style="cursor:pointer">Prendre la photo<input type="file" accept="image/*" capture="environment" hidden data-photo="'+i+'"></label><img class="photoprev" id="pv-'+i+'" alt="" hidden>';}
+      else{h+='<div class="choices">'+p.a.map(function(t,k){return '<button type="button" data-q="'+i+'" data-k="'+k+'">'+t+'</button>';}).join('')+'</div>';}
+      h+='<div class="feedback" id="fb-'+i+'"></div><div class="reveal" id="rv-'+i+'"><p>'+p.why+'</p><div class="drone small"><div class="scan"></div><div class="reticle"></div><div><b>Vue drone débloquée</b><span>Emplacement réservé pour la prise de vue de ce poste</span></div></div></div></div>';
+    }
+    li.innerHTML=h;ol.appendChild(li);
+  });
+
+  function score(){var n=0,pts=0;posts.forEach(function(i){if(st[i]){n++;pts+=st[i].pts||0;}});return {n:n,pts:pts};}
+  function render(pop){
+    var sc=score();
+    dropEls.forEach(function(d,k){d.classList.toggle('on',!!st[posts[k]]);});
+    if(pop!=null){var d=dropEls[posts.indexOf(pop)];d.classList.remove('pop');void d.getBBox();d.classList.add('pop');}
+    var next=posts.find(function(i){return !st[i];});
+    document.getElementById('boardLbl').innerHTML=sc.n+' / '+TOTAL+' gouttes<small>'+(next!=null?'Prochain : '+STEPS[next].title:'Rallye terminé')+'</small>';
+    document.getElementById('pts').textContent=sc.pts+' pt';
+    STEPS.forEach(function(s,i){
+      var li=document.getElementById('st-'+i);li.classList.toggle('done',!!st[i]);
+      if(st[i]&&s.post){document.getElementById('rv-'+i).classList.add('show');
+        if(!s.post.photo){li.querySelectorAll('[data-q]').forEach(function(b){b.disabled=true;if(+b.dataset.k===s.post.ok)b.classList.add('right');});}
+        document.getElementById('fb-'+i).innerHTML='<b>Goutte gagnée'+(st[i].pts?' · +'+st[i].pts+' pt':'')+'</b>';}
+    });
+    var fin=document.getElementById('finale');
+    if(sc.n===TOTAL){if(!st.code){st.code='RO-'+String(Math.floor(1000+Math.random()*9000));save();}document.getElementById('finalCode').textContent=st.code;fin.classList.add('show');}
+    else fin.classList.remove('show');
+    moveWalker(sc.n/TOTAL);
+    return sc.n;
+  }
+  ol.addEventListener('click',function(e){
+    var b=e.target.closest('[data-q]');if(!b||b.disabled)return;
+    var i=+b.dataset.q,k=+b.dataset.k,p=STEPS[i].post;
+    st['try'+i]=(st['try'+i]||0)+1;
+    if(k===p.ok){st[i]={pts:Math.max(1,4-st['try'+i])};save();var n=render(i);if(n===TOTAL)confetti();}
+    else{b.classList.add('wrong');b.disabled=true;document.getElementById('fb-'+i).textContent='Pas tout à fait. Relis les panneaux autour de toi et réessaie.';save();}
+  });
+  ol.addEventListener('change',function(e){
+    var inp=e.target.closest('[data-photo]');if(!inp||!inp.files||!inp.files[0])return;
+    var i=+inp.dataset.photo,pv=document.getElementById('pv-'+i);pv.src=URL.createObjectURL(inp.files[0]);pv.hidden=false;
+    st[i]={pts:2};save();var n=render(i);if(n===TOTAL)confetti();
+  });
+  document.getElementById('reset').addEventListener('click',function(){st={};save();location.hash='#rallye';location.reload();});
+
+  // Le marcheur avance sur la falaise du bandeau
+  var walker=document.getElementById('walker');
+  var path=document.querySelector('.cliff .channel');var len=path.getTotalLength();
+  function moveWalker(f){var p=path.getPointAtLength(Math.max(.02,f)*len*.96);walker.setAttribute('cx',p.x);walker.setAttribute('cy',p.y-8);
+    walker.style.transition=reduce?'none':'cx .9s ease, cy .9s ease';}
+
+  function confetti(){
+    if(reduce)return;
+    var cv=document.createElement('canvas');cv.id='confetti';document.body.appendChild(cv);
+    var ctx=cv.getContext('2d'),W=cv.width=innerWidth,H=cv.height=innerHeight;
+    var cols=['#1f8296','#4cb3c7','#b9862a','#e0b154','#ffffff'],P=[];
+    for(var k=0;k<150;k++)P.push({x:W/2,y:H*.3,vx:(Math.random()-.5)*14,vy:-Math.random()*13-4,s:4+Math.random()*6,c:cols[k%cols.length],r:Math.random()*6});
+    var t0=performance.now();
+    (function f(t){ctx.clearRect(0,0,W,H);P.forEach(function(p){p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.r+=.1;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.beginPath();ctx.ellipse(0,0,p.s/2,p.s/1.4,0,0,7);ctx.fill();ctx.restore();});
+      if(t-t0<2600)requestAnimationFrame(f);else cv.remove();})(t0);
+  }
+
+  // Carte : swisstopo + chemins de randonnée + zones drones OFAC
+  var map=L.map('map').setView([46.328,7.465],14);
+  L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'© swisstopo'}).addTo(map);
+  L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-wanderwege/default/current/3857/{z}/{x}/{y}.png',{maxZoom:18,opacity:.9}).addTo(map);
+  var droneLayer=L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.bazl.einschraenkungen-drohnen/default/current/3857/{z}/{x}/{y}.png',{maxZoom:18,opacity:.7,attribution:'© OFAC'});
+  var dOn=false;
+  document.getElementById('btnDrone').addEventListener('click',function(){dOn=!dOn;if(dOn){droneLayer.addTo(map);this.textContent='Masquer les zones drones';}else{map.removeLayer(droneLayer);this.textContent='Afficher les zones drones';}});
+  var me=null;
+  document.getElementById('btnGps').addEventListener('click',function(){
+    if(!navigator.geolocation)return;
+    navigator.geolocation.getCurrentPosition(function(p){var ll=[p.coords.latitude,p.coords.longitude];
+      if(!me)me=L.circleMarker(ll,{radius:9,color:'#fff',weight:3,fillColor:'#1f8296',fillOpacity:1}).addTo(map);else me.setLatLng(ll);map.setView(ll,16);},
+      function(){alert('Position indisponible. Autorise la localisation pour ce site.');},{enableHighAccuracy:true,timeout:20000});
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
