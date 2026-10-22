@@ -331,6 +331,7 @@ footer{padding:40px 0 60px;color:var(--muted);font-size:.9rem}
       if(firstFix){map.setView(ll,16);firstFix=false;}
       info.innerHTML='<b class="coord">'+fmt(c.latitude,c.longitude)+'</b> · précision ±'+Math.round(c.accuracy)+' m'+(c.altitude!=null?' · altitude <b>'+Math.round(c.altitude)+' m</b>':' · altitude indisponible');
       showAlt(c.altitude);
+      document.dispatchEvent(new CustomEvent('gop-alt',{detail:{alt:c.altitude}}));
     },function(err){
       info.textContent=err.code===1?'Accès au GPS refusé. Autorise la localisation pour ce site dans les réglages du navigateur.':'Pas de signal GPS pour l’instant. Mets-toi à découvert et réessaie.';
     },{enableHighAccuracy:true,maximumAge:5000,timeout:30000});
@@ -394,5 +395,6 @@ footer{padding:40px 0 60px;color:var(--muted);font-size:.9rem}
   if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}
 })();
 </script>
+<script src="/itineraire.js"></script>
 </body>
 </html>
