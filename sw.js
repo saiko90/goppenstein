@@ -1,5 +1,5 @@
-const CACHE='goppenstein-v1';
-const ASSETS=['/','/index.html','/manifest.webmanifest',
+const CACHE='goppenstein-v2';
+const ASSETS=['/','/index.html','/manifest.webmanifest','/itineraire.js',
  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));});
