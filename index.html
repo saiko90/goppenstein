@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Goppenstein – carnet de terrain</title>
+<meta name="description" content="Carnet de terrain pour explorer l’ancienne mine de plomb de Goppenstein (Lötschental) : carte, GPS, niveaux, histoire, sécurité.">
+<meta name="theme-color" content="#24282c">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛏️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --bg:#eef1f2; --surface:#ffffff; --ink:#24282c; --muted:#5d6670;
+  --lead:#6b7682; --rust:#9c4a1e; --lichen:#7d8a2e; --line:#cfd5d9; --danger:#a3261b;
+  --font-head:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --font-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#1b1e21;--surface:#24282c;--ink:#e9ecee;--muted:#a3abb2;--lead:#8b96a1;--rust:#d07a45;--lichen:#b9c26a;--line:#3a4046;--danger:#ff7b6b;color-scheme:dark}
+}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 56px);scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.55 var(--font-body)}
+a{color:var(--rust)}
+:focus-visible{outline:3px solid var(--rust);outline-offset:2px}
+h1,h2,h3{font-family:var(--font-head);font-weight:700;line-height:1.05;letter-spacing:.01em;margin:0}
+h2{font-size:clamp(1.9rem,5vw,2.6rem);margin-bottom:.6rem}
+h3{font-size:1.35rem;margin:1.2rem 0 .3rem}
+p{margin:.4rem 0 .9rem;max-width:68ch}
+.wrap{max-width:980px;margin:0 auto;padding:0 18px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:1001;background:var(--ink)}
+nav.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:1000;background:var(--ink);color:var(--bg)}
+nav.top .wrap{display:flex;gap:4px;overflow-x:auto;padding:0 10px}
+nav.top a{color:var(--bg);text-decoration:none;font:600 1rem/1 var(--font-head);padding:15px 10px;white-space:nowrap;opacity:.8}
+nav.top a:hover{opacity:1}
+/* hero : la coupe verticale */
+header.hero{padding:28px 0 10px}
+.hero-grid{display:grid;grid-template-columns:1fr minmax(240px,320px);gap:28px;align-items:start}
+@media (max-width:720px){.hero-grid{grid-template-columns:1fr}}
+.hero h1{font-size:clamp(3rem,13vw,6.2rem);text-transform:none;line-height:.9}
+.hero .sub{font:500 1.15rem/1.4 var(--font-body);color:var(--muted);margin-top:10px}
+.facts{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;color:var(--muted);font-size:.95rem}
+.facts b{color:var(--ink)}
+.coupe{position:relative;height:440px;border-left:3px solid var(--ink);margin-left:62px}
+.coupe .tick{position:absolute;left:-62px;width:56px;text-align:right;font:500 .8rem/1 var(--font-body);color:var(--muted);transform:translateY(-50%)}
+.coupe .tick::after{content:"";position:absolute;right:-12px;top:50%;width:9px;border-top:1px solid var(--muted)}
+.coupe button.lvl{position:absolute;left:0;transform:translateY(-50%);display:flex;align-items:center;gap:10px;background:none;border:0;padding:4px 0;color:var(--ink);cursor:pointer;text-align:left;font:600 1rem/1.15 var(--font-head)}
+.coupe button.lvl::before{content:"";width:22px;border-top:5px solid var(--lead)}
+.coupe button.lvl small{display:block;font:400 .8rem/1.2 var(--font-body);color:var(--muted)}
+.coupe button.lvl.hot::before{border-color:var(--rust)}
+.coupe .band{position:absolute;left:-3px;width:3px;background:var(--rust)}
+#me{position:absolute;left:-12px;transform:translateY(-50%);display:none;align-items:center;gap:6px;font:700 .85rem/1 var(--font-head);color:var(--surface);background:var(--lichen);padding:5px 8px;border-radius:3px;white-space:nowrap}
+#me::before{content:"";position:absolute;left:-6px;top:50%;transform:translateY(-50%);border:6px solid transparent;border-right-color:var(--lichen);border-left:0}
+section{padding:44px 0 8px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px 18px}
+/* carte */
+#map{height:min(70vh,560px);border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.btn{appearance:none;border:1px solid var(--ink);background:var(--ink);color:var(--bg);font:600 1rem/1 var(--font-head);padding:11px 14px;border-radius:4px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.rust{background:var(--rust);border-color:var(--rust);color:#fff}
+.gps{font-size:.95rem;color:var(--muted);min-height:1.4em}
+.gps b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+td,th{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 .95rem var(--font-head);color:var(--muted)}
+.tbl{overflow-x:auto}
+.coord{font-variant-numeric:tabular-nums;white-space:nowrap}
+.note{font-size:.9rem;color:var(--muted)}
+/* niveaux */
+.level{border-left:5px solid var(--lead);padding:2px 0 2px 16px;margin:22px 0}
+.level.hot{border-color:var(--rust)}
+.level .alt{font:700 1.05rem var(--font-head);color:var(--rust)}
+/* programme */
+ol.plan{list-style:none;padding:0;margin:0;counter-reset:s}
+ol.plan li{counter-increment:s;display:grid;grid-template-columns:64px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+ol.plan li .t{font:700 1.2rem var(--font-head);color:var(--rust)}
+/* histoire */
+dl.hist{display:grid;grid-template-columns:110px 1fr;gap:6px 16px;margin:0}
+dl.hist dt{font:700 1.15rem var(--font-head);color:var(--lead)}
+dl.hist dd{margin:0 0 8px}
+@media (max-width:520px){dl.hist{grid-template-columns:1fr}dl.hist dd{margin-bottom:14px}}
+/* sécurité */
+.sos{display:flex;flex-wrap:wrap;gap:10px}
+.sos a{flex:1 1 140px;text-decoration:none;color:#fff;background:var(--danger);border-radius:5px;padding:12px 14px;font:700 1.6rem/1 var(--font-head)}
+.sos a span{display:block;font:500 .85rem/1.2 var(--font-body);margin-top:4px;opacity:.95}
+ul.check{list-style:none;padding:0;margin:0;columns:2 240px}
+ul.check li{break-inside:avoid;padding:4px 0}
+ul.check label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+ul.check input{width:20px;height:20px;accent-color:var(--rust);margin-top:2px}
+ul.src{padding-left:18px}
+ul.src li{margin-bottom:10px}
+footer{padding:40px 0 60px;color:var(--muted);font-size:.9rem}
+.leaflet-container{font:inherit}
+</style>
+</head>
+<body>
+<nav class="top" aria-label="Sections"><div class="wrap">
+  <a href="#carte">Carte & GPS</a><a href="#niveaux">Niveaux</a><a href="#journee">Journée</a><a href="#histoire">Histoire</a><a href="#securite">Sécurité</a><a href="#sources">Sources</a>
+</div></nav>
+
+<header class="hero"><div class="wrap hero-grid">
+  <div>
+    <h1>Goppenstein</h1>
+    <p class="sub">Mine de plomb et de zinc du Rothenberg, bas Lötschental. Carnet de terrain pour Michaël et Yannick, samedi 24 octobre 2026.</p>
+    <div class="facts">
+      <span><b>Commune</b> Ferden VS</span>
+      <span><b>Carte</b> swisstopo 1268 Lötschental</span>
+      <span><b>Exploitation</b> 1474 → 1953</span>
+      <span><b>Statut</b> bien culturel protégé, accès à tes risques</span>
+    </div>
+    <p class="note" style="margin-top:16px">Touche un niveau sur la coupe pour aller à sa fiche. Active le GPS dans la carte : ton altitude s’affiche en vert sur la coupe.</p>
+  </div>
+  <div class="coupe" id="coupe" aria-label="Coupe verticale des niveaux de la mine"></div>
+</div></header>
+
+<main class="wrap">
+
+<section id="carte">
+  <h2>Carte & GPS</h2>
+  <div class="bar">
+    <button class="btn" id="btnLocate">Activer mon GPS</button>
+    <button class="btn rust" id="btnSave">Marquer ce point</button>
+    <button class="btn ghost" id="btnLayer">Vue aérienne</button>
+    <button class="btn ghost" id="btnGpx">Exporter GPX</button>
+  </div>
+  <p class="gps" id="gpsInfo">GPS inactif.</p>
+  <div id="map" role="region" aria-label="Carte swisstopo"></div>
+
+  <h3>Points de référence</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Point</th><th>Coordonnées</th><th>Ouvrir</th></tr></thead>
+    <tbody id="refTable"></tbody>
+  </table></div>
+  <p class="note">Le point « Galeries du Rothenberg » vient de Mindat : c’est un centre de zone, pas l’entrée exacte d’une galerie. Marque toi-même les vrais entrées sur place, elles restent enregistrées dans ton téléphone.</p>
+
+  <h3>Mes points</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Nom</th><th>Coordonnées</th><th>Alt.</th><th></th></tr></thead>
+    <tbody id="myTable"><tr><td colspan="4" class="note">Aucun point pour l’instant. Active le GPS puis « Marquer ce point » à chaque entrée, ruine ou spot.</td></tr></tbody>
+  </table></div>
+</section>
+
+<section id="niveaux">
+  <h2>Les trois étages de la mine</h2>
+  <p>Les travaux s’étagent sur plus de 1000 m de dénivelé, de part et d’autre du Roten Bach, sur le versant du Rothenberg au-dessus de Goppenstein.</p>
+
+  <div class="level" id="lvl-bas">
+    <div class="alt">1310 – 1425 m</div>
+    <h3>Fond de vallée : usine, galeries Tiebel et Dahl</h3>
+    <p>La galerie Tiebel (1310 m) a été creusée à partir de 1898, environ 400 m sous les anciens travaux. La galerie Dahl, de l’autre côté du Roten Bach, la rejoint. Au-dessus s’étagent les niveaux I à V (1345, 1360, 1380, 1400, 1425 m).</p>
+    <p>À voir : l’usine de traitement de Dionisotti (années 1950), dernière installation de ce type en Suisse. Le bunker supérieur et la partie basse sont effondrés, les bâtiments du milieu tiennent encore mais s’effritent au toucher. Massive fondation de l’ancienne usine Tiebel. Deux entrées de galerie dans le Stockgraben, avec un tunnel de protection d’environ 60 m, non praticable.</p>
+    <p><b>État des galeries (2021) :</b> Tiebel et Dahl praticables sur quelques dizaines de mètres puis effondrées. Chutes de pierres jusqu’au point d’effondrement, boisages fragiles, échelles rongées par la rouille, trous profonds noyés d’eau.</p>
+  </div>
+
+  <div class="level hot" id="lvl-1800">
+    <div class="alt">1690 – 1970 m · principales galeries à 1820 et 1860 m</div>
+    <h3>Station du téléphérique et grande salle</h3>
+    <p>Le spot de la vidéo. Un téléphérique d’environ 600 m reliait ces galeries à l’usine. La gare supérieure tient toujours sur son éperon rocheux, entretenue par des bénévoles : étage accessible, table, quelques lits et un livre de cabane.</p>
+    <p>Depuis l’étage, un bout de rail douteux mène à une vire étroite puis à une galerie basse qui s’ouvre sur une salle d’abattage d’environ 50 m de haut, avec des restes de galeries en bois perchées. La galerie est effondrée après une centaine de mètres. Les baraquements de l’époque Dionisotti sont à terre.</p>
+    <p><b>Accès :</b> sentier de montée globalement lisible, quelques arbres couchés à enjamber, peu balisé. Filon argentifère de 5 à 10 cm à 1820 m (galène, sphalérite, argent natif).</p>
+  </div>
+
+  <div class="level" id="lvl-scheen">
+    <div class="alt">2200 – 2500 m</div>
+    <h3>Scheenbiel / Schönbühl : les travaux les plus anciens</h3>
+    <p>Relevé 2021 : 7 galeries et 3 ruines. Vers 2450 m, une tranchée d’exploitation à ciel ouvert d’environ 50 m de long et 10 m de profondeur, avec ruine de baraque et galeries d’une vingtaine de mètres. Ruines et galeries vers 2400 m, ruine sous un cône d’éboulis vers 2300 m. Sous Schönbühl, les cartes anciennes indiquent l’« Alti Pochi », un ancien bocard.</p>
+    <p><b>Samedi :</b> hors sujet s’il a neigé. Terrain alpin, exposé.</p>
+  </div>
+</section>
+
+<section id="journee">
+  <h2>Proposition de journée</h2>
+  <ol class="plan">
+    <li><span class="t">7:00</span><div><b>Départ d’Aven.</b> A9 jusqu’à Gampel-Steg, puis montée vers Goppenstein (gare de la ligne du Lötschberg). Compte environ 1 h.</div></li>
+    <li><span class="t">8:15</span><div><b>Check météo et neige sur place.</b> Regarde le haut du Rotlauitobel : si le versant est chargé, on reste en bas.</div></li>
+    <li><span class="t">8:30</span><div><b>Fond de vallée.</b> Usine Dionisotti, fondation Tiebel, entrées de galeries. Marque chaque point dans l’app.</div></li>
+    <li><span class="t">10:00</span><div><b>Montée au niveau 1800</b> si conditions sèches. Station du téléphérique, livre de cabane, salle d’abattage.</div></li>
+    <li><span class="t">13:00</span><div><b>Pique-nique à la station</b>, vue sur le Lötschental.</div></li>
+    <li><span class="t">14:30</span><div><b>Descente</b> avant que la lumière baisse (coucher de soleil vers 18:20, mais le fond du val est à l’ombre bien avant).</div></li>
+    <li><span class="t">16:00</span><div><b>Option :</b> champignons dans les forêts du bas, ou bière à Gampel / Steg.</div></li>
+  </ol>
+  <p class="note">Horaires indicatifs, à adapter à votre rythme et à la météo.</p>
+</section>
+
+<section id="histoire">
+  <h2>Histoire en accéléré</h2>
+  <dl class="hist">
+    <dt>~3000 av. J.-C.</dt><dd>Un bracelet de l’âge du bronze trouvé dans les éboulis de la Rotlaui (Musée d’histoire de Berne). Aucune preuve d’exploitation à cette époque.</dd>
+    <dt>1474</dt><dd>Première concession connue, accordée par l’évêque de Sion. Disputes entre associés, probablement pas d’exploitation.</dd>
+    <dt>1610 – 1647</dt><dd>Michael Mageran, puis Kaspar Jodok Stockalper comme associé. Fonte du minerai sur place à Goppenstein.</dd>
+    <dt>1845 – 1849</dt><dd>Pierre de Baglioni rouvre les galeries de 1800 m. Le minerai descend en luge, une bonne partie se perd en route.</dd>
+    <dt>1849 – 1856</dt><dd>Société anglaise de John James Rippon : grosses installations à Mittal et Gampel, route Gampel–Goppenstein, mais fonte bâclée.</dd>
+    <dt>1856 – 1870</dt><dd>« Société des mines argentifères du Lötschental » : logements pour 60 personnes à 1800 m, forge, poudrière. Faillite.</dd>
+    <dt>1897 – 1907</dt><dd>Richard Tiebel creuse la galerie basse, usine de 100 t/jour, téléphérique depuis la galerie Dahl. Minerai trop pauvre, arrêt en 1907.</dd>
+    <dt>1939 – 1948</dt><dd>Schurter et Eberhard : beaucoup de projets, surtout du talc et du quartz.</dd>
+    <dt>1946 – 1953</dt><dd>Joseph Dionisotti : nouvelle usine, téléphérique de 600 m, conduite d’air comprimé. Jusqu’à 50 ouvriers. Arrêt brutal en 1953, presque rien d’extrait.</dd>
+    <dt>1988</dt><dd>Inscription à l’inventaire des biens culturels suisses.</dd>
+  </dl>
+  <p class="note">Anecdote : la commune de Ferden imposait d’embaucher surtout des mineurs locaux, au chômage après la fermeture de la mine d’anthracite de Ferden.</p>
+</section>
+
+<section id="securite">
+  <h2>Sécurité</h2>
+  <div class="sos">
+    <a href="tel:1414">1414<span>Rega, sauvetage aérien</span></a>
+    <a href="tel:144">144<span>Ambulance</span></a>
+    <a href="tel:112">112<span>Urgence européenne</span></a>
+    <a href="tel:117">117<span>Police</span></a>
+  </div>
+  <h3>Les dangers propres au site</h3>
+  <p>Zone très exposée aux chutes de pierres. Avalanches possibles depuis le Rotlauitobel, sur plus de 1000 m de dénivelé. Galeries et bâtiments en risque d’effondrement : ne touche pas aux boisages, ne monte sur aucune échelle, attention aux puits noyés. Le réseau mobile peut disparaître dans le fond du val et sous terre : dis à quelqu’un où vous allez et quand vous rentrez.</p>
+  <p>Le site est protégé : interdit de démonter ou d’emporter quoi que ce soit des installations.</p>
+  <h3>Avant de partir</h3>
+  <div class="bar">
+    <a class="btn ghost" href="https://www.meteosuisse.admin.ch/" target="_blank" rel="noopener">Météo MeteoSuisse</a>
+    <a class="btn ghost" href="https://www.slf.ch/fr/bulletin-davalanches-et-situation-nivologique/" target="_blank" rel="noopener">Bulletin avalanches SLF</a>
+  </div>
+  <h3>Sac (coché = prêt)</h3>
+  <ul class="check" id="checklist"></ul>
+</section>
+
+<section id="sources">
+  <h2>Sources et témoignages</h2>
+  <ul class="src">
+    <li><a href="https://goppenstein.info/bergwerke/blei-und-zinkbergwerk/" target="_blank" rel="noopener">goppenstein.info – Blei- und Zinkbergwerk</a><br>La référence : histoire complète, <b>cartes de chaque époque</b> (Tiebel 1907, Eberhard, Dionisotti) et <b>plan d’ensemble 2021</b> de tous les vestiges, de la vallée à Schönbühl, avec un compte rendu de visite détaillé.</li>
+    <li><a href="https://goppenstein.info/fotos-bergwerk/" target="_blank" rel="noopener">goppenstein.info – Photos du Bergwerk</a><br>Photos de plusieurs visites sur les trois étages. L’auteur ne dit volontairement pas quelle photo correspond à quelle galerie.</li>
+    <li><a href="https://goppenstein.info/wandervorschlaege/" target="_blank" rel="noopener">goppenstein.info – Idées de randonnée</a></li>
+    <li><a href="https://www.hikr.org/tour/post147544.html" target="_blank" rel="noopener">Hikr – « Rothenberg, Schönbühl und das alte Bergwerk »</a><br>Récit de course avec galerie photos : sentier d’abord correct et parfois balisé, beaucoup de bois mort à l’approche de la mine, restes des baraques Dionisotti, recherche des galeries de Schönbühl.</li>
+    <li><a href="https://www.bergbau-gr.ch/wordpress/wp-content/uploads/bk/bk_107.pdf" target="_blank" rel="noopener">Bergknappe n° 107 (2005) – H.-R. Rüegg, « Bleibergwerk am Rotenberg bei Goppenstein » (PDF)</a><br>Article technique : géologie, historique et <b>plan des galeries</b> (section Stollenanlagen).</li>
+    <li><a href="https://www.mindat.org/loc-130568.html" target="_blank" rel="noopener">Mindat – Rothenberg adits</a><br>Altitudes de chaque niveau et liste des minéraux (galène, sphalérite, argent natif, pyrargyrite…).</li>
+    <li><a href="https://map.geo.admin.ch/?lang=fr" target="_blank" rel="noopener">map.geo.admin.ch</a> – carte swisstopo officielle, couches historiques (Siegfried) pour retrouver les anciens chemins.</li>
+  </ul>
+</section>
+
+</main>
+<footer><div class="wrap">Carnet perso, sans garantie. Les vestiges sont protégés et dangereux : tu y vas sous ta propre responsabilité. Données cartographiques © swisstopo.</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+  // ---------- Coupe verticale ----------
+  var MIN=1150, MAX=2550;
+  var coupe=document.getElementById('coupe');
+  function y(alt){return ((MAX-alt)/(MAX-MIN))*100+'%';}
+  [1200,1400,1600,1800,2000,2200,2400].forEach(function(a){
+    var t=document.createElement('div');t.className='tick';t.style.top=y(a);t.textContent=a+' m';coupe.appendChild(t);
+  });
+  [[1310,1425],[1690,1970],[2200,2500]].forEach(function(b){
+    var d=document.createElement('div');d.className='band';d.style.top=y(b[1]);
+    d.style.height='calc('+y(b[0])+' - '+y(b[1])+')';coupe.appendChild(d);
+  });
+  var LEVELS=[
+    {alt:1216,name:'Gare de Goppenstein',sub:'parking, départ',target:'carte'},
+    {alt:1360,name:'Usine, Tiebel, Dahl',sub:'1310 – 1425 m',target:'lvl-bas'},
+    {alt:1830,name:'Station du téléphérique',sub:'galeries 1820 / 1860 m',target:'lvl-1800',hot:true},
+    {alt:2350,name:'Scheenbiel',sub:'2200 – 2500 m',target:'lvl-scheen'}
+  ];
+  LEVELS.forEach(function(l){
+    var b=document.createElement('button');b.className='lvl'+(l.hot?' hot':'');b.style.top=y(l.alt);
+    b.innerHTML='<span>'+l.name+'<small>'+l.sub+'</small></span>';
+    b.addEventListener('click',function(){document.getElementById(l.target).scrollIntoView();});
+    coupe.appendChild(b);
+  });
+  var me=document.createElement('div');me.id='me';coupe.appendChild(me);
+  function showAlt(alt){
+    if(alt==null||isNaN(alt)){me.style.display='none';return;}
+    var a=Math.max(MIN,Math.min(MAX,alt));me.style.top=y(a);me.style.display='flex';
+    me.textContent='Toi · '+Math.round(alt)+' m';
+  }
+
+  // ---------- Conversion WGS84 -> LV95 (formules approchées swisstopo) ----------
+  function toLV95(lat,lon){
+    var p=(lat*3600-169028.66)/10000, l=(lon*3600-26782.5)/10000;
+    var E=2600072.37+211455.93*l-10938.51*l*p-0.36*l*p*p-44.54*l*l*l;
+    var N=1200147.07+308807.95*p+3745.25*l*l+76.63*p*p-194.56*l*l*p+119.79*p*p*p;
+    return {E:Math.round(E),N:Math.round(N)};
+  }
+  function geoAdminUrl(lat,lon){var c=toLV95(lat,lon);return 'https://map.geo.admin.ch/?lang=fr&E='+c.E+'&N='+c.N+'&zoom=10&crosshair=marker';}
+  function gmapsUrl(lat,lon){return 'https://www.google.com/maps/search/?api=1&query='+lat+','+lon;}
+  function fmt(lat,lon){return lat.toFixed(5)+', '+lon.toFixed(5);}
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+  // ---------- Carte ----------
+  var map=L.map('map',{zoomControl:true}).setView([46.3670,7.7615],14);
+  var topo=L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'© swisstopo'});
+  var aerial=L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:19,attribution:'© swisstopo'});
+  topo.addTo(map);
+  var isAerial=false;
+  document.getElementById('btnLayer').addEventListener('click',function(){
+    if(isAerial){map.removeLayer(aerial);topo.addTo(map);this.textContent='Vue aérienne';}
+    else{map.removeLayer(topo);aerial.addTo(map);this.textContent='Vue carte';}
+    isAerial=!isAerial;
+  });
+
+  var REFS=[
+    {name:'Gare de Goppenstein (1216 m)',lat:46.36833,lon:7.75556,src:'Wikipedia'},
+    {name:'Galeries du Rothenberg (zone)',lat:46.36556,lon:7.76667,src:'Mindat, centre de zone approximatif'}
+  ];
+  var refBody=document.getElementById('refTable');
+  REFS.forEach(function(r){
+    L.circleMarker([r.lat,r.lon],{radius:8,color:'#24282c',weight:2,fillColor:'#6b7682',fillOpacity:.9}).addTo(map)
+      .bindPopup('<b>'+esc(r.name)+'</b><br>'+fmt(r.lat,r.lon)+'<br><small>'+esc(r.src)+'</small>');
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+esc(r.name)+'<br><span class="note">'+esc(r.src)+'</span></td><td class="coord">'+fmt(r.lat,r.lon)+'</td><td><a href="'+gmapsUrl(r.lat,r.lon)+'" target="_blank" rel="noopener">Maps</a> · <a href="'+geoAdminUrl(r.lat,r.lon)+'" target="_blank" rel="noopener">swisstopo</a></td>';
+    refBody.appendChild(tr);
+  });
+
+  // ---------- GPS ----------
+  var info=document.getElementById('gpsInfo');
+  var last=null, meMarker=null, meCircle=null, watchId=null, firstFix=true;
+  document.getElementById('btnLocate').addEventListener('click',function(){
+    if(!('geolocation' in navigator)){info.textContent='Ce navigateur ne donne pas accès au GPS.';return;}
+    if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;this.textContent='Activer mon GPS';info.textContent='GPS arrêté.';return;}
+    info.textContent='Recherche du signal GPS…';
+    this.textContent='Arrêter le GPS';
+    watchId=navigator.geolocation.watchPosition(function(pos){
+      var c=pos.coords;last={lat:c.latitude,lon:c.longitude,alt:c.altitude,acc:c.accuracy,t:pos.timestamp};
+      var ll=[c.latitude,c.longitude];
+      if(!meMarker){
+        meMarker=L.circleMarker(ll,{radius:9,color:'#fff',weight:3,fillColor:'#7d8a2e',fillOpacity:1}).addTo(map);
+        meCircle=L.circle(ll,{radius:c.accuracy,color:'#7d8a2e',weight:1,fillOpacity:.12}).addTo(map);
+      }else{meMarker.setLatLng(ll);meCircle.setLatLng(ll).setRadius(c.accuracy);}
+      if(firstFix){map.setView(ll,16);firstFix=false;}
+      info.innerHTML='<b class="coord">'+fmt(c.latitude,c.longitude)+'</b> · précision ±'+Math.round(c.accuracy)+' m'+(c.altitude!=null?' · altitude <b>'+Math.round(c.altitude)+' m</b>':' · altitude indisponible');
+      showAlt(c.altitude);
+    },function(err){
+      info.textContent=err.code===1?'Accès au GPS refusé. Autorise la localisation pour ce site dans les réglages du navigateur.':'Pas de signal GPS pour l’instant. Mets-toi à découvert et réessaie.';
+    },{enableHighAccuracy:true,maximumAge:5000,timeout:30000});
+  });
+
+  // ---------- Mes points ----------
+  var KEY='goppenstein-points-v1';
+  function load(){try{return JSON.parse(localStorage.getItem(KEY))||[];}catch(e){return [];}}
+  function save(pts){try{localStorage.setItem(KEY,JSON.stringify(pts));}catch(e){}}
+  var points=load(), layer=L.layerGroup().addTo(map);
+  function render(){
+    layer.clearLayers();
+    var body=document.getElementById('myTable');
+    if(!points.length){body.innerHTML='<tr><td colspan="4" class="note">Aucun point pour l’instant. Active le GPS puis « Marquer ce point » à chaque entrée, ruine ou spot.</td></tr>';return;}
+    body.innerHTML='';
+    points.forEach(function(p,i){
+      L.circleMarker([p.lat,p.lon],{radius:7,color:'#fff',weight:2,fillColor:'#9c4a1e',fillOpacity:1}).addTo(layer)
+        .bindPopup('<b>'+esc(p.name)+'</b><br>'+fmt(p.lat,p.lon)+(p.alt!=null?'<br>'+Math.round(p.alt)+' m':''));
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+esc(p.name)+'</td><td class="coord"><a href="'+gmapsUrl(p.lat,p.lon)+'" target="_blank" rel="noopener">'+fmt(p.lat,p.lon)+'</a></td><td>'+(p.alt!=null?Math.round(p.alt)+' m':'–')+'</td><td><button class="btn ghost" data-del="'+i+'" style="padding:6px 9px">Supprimer</button></td>';
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('[data-del]').forEach(function(b){
+      b.addEventListener('click',function(){var i=+this.getAttribute('data-del');if(confirm('Supprimer « '+points[i].name+' » ?')){points.splice(i,1);save(points);render();}});
+    });
+  }
+  render();
+  document.getElementById('btnSave').addEventListener('click',function(){
+    if(!last){info.textContent='Active d’abord le GPS, puis marque le point quand la précision est bonne.';return;}
+    var name=prompt('Nom du point (ex. entrée galerie Tiebel) :','Point '+(points.length+1));
+    if(name===null)return;
+    points.push({name:name||('Point '+(points.length+1)),lat:last.lat,lon:last.lon,alt:last.alt,acc:last.acc,t:Date.now()});
+    save(points);render();
+    info.innerHTML='Point « '+esc(name)+' » enregistré sur ce téléphone.';
+  });
+  document.getElementById('btnGpx').addEventListener('click',function(){
+    if(!points.length){info.textContent='Aucun point à exporter. Marque d’abord des points sur le terrain.';return;}
+    var gpx='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="goppenstein" xmlns="http://www.topografix.com/GPX/1/1">\n';
+    points.forEach(function(p){
+      gpx+='  <wpt lat="'+p.lat+'" lon="'+p.lon+'">'+(p.alt!=null?'<ele>'+p.alt.toFixed(1)+'</ele>':'')+'<time>'+new Date(p.t).toISOString()+'</time><name>'+esc(p.name)+'</name></wpt>\n';
+    });
+    gpx+='</gpx>';
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([gpx],{type:'application/gpx+xml'}));
+    a.download='goppenstein-points.gpx';document.body.appendChild(a);a.click();a.remove();
+    info.textContent='Fichier GPX exporté ('+points.length+' points).';
+  });
+
+  // ---------- Checklist ----------
+  var ITEMS=['Frontale + frontale de secours','Piles / batterie externe','Casque','Gants','Couche chaude + veste pluie','Chaussures montantes','Corde + baudrier + matériel de rappel','Couteau','Trousse de secours + couverture de survie','Eau + thermos','Pique-nique','Téléphone chargé, app ouverte','Itinéraire laissé à quelqu’un','Sac et couteau à champignons'];
+  var CK='goppenstein-check-v1', state={};
+  try{state=JSON.parse(localStorage.getItem(CK))||{};}catch(e){}
+  var ul=document.getElementById('checklist');
+  ITEMS.forEach(function(it,i){
+    var li=document.createElement('li');
+    li.innerHTML='<label><input type="checkbox" '+(state[i]?'checked':'')+'><span>'+esc(it)+'</span></label>';
+    li.querySelector('input').addEventListener('change',function(){state[i]=this.checked;try{localStorage.setItem(CK,JSON.stringify(state));}catch(e){}});
+    ul.appendChild(li);
+  });
+
+  // ---------- Hors ligne ----------
+  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}
+})();
+</script>
+</body>
+</html>
