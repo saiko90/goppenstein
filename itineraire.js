@@ -135,12 +135,13 @@ li.done .btn-check{background:var(--rust);border-color:var(--rust);color:#fff}
   var hiker=el('g',{id:'hiker'});
   hiker.appendChild(el('circle',{class:'pulse',cx:0,cy:0,r:30}));
   hiker.appendChild(el('circle',{class:'dot',cx:0,cy:0,r:14}));
-  var ht=el('text',{x:0,y:-38});ht.textContent='M + Y';hiker.appendChild(ht);
+  var ht=el('text',{x:0,y:-38});ht.textContent='M + Y + K';hiker.appendChild(ht);
   svg.appendChild(hiker);
   function placeHiker(f){ // f = position continue 0..6
     f=Math.max(0,Math.min(STEPS.length-1,f));var i=Math.floor(f),r=f-i,j=Math.min(i+1,pts.length-1);
     var x=pts[i][0]+(pts[j][0]-pts[i][0])*r,y=pts[i][1]+(pts[j][1]-pts[i][1])*r;
     hiker.setAttribute('transform','translate('+x+','+y+')');
+    ht.style.textAnchor=x>860?'end':(x<240?'start':'middle');ht.setAttribute('x',x>860?24:(x<240?-24:0));
   }
 
   // ---- Étapes ----
